@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 import platform
 #import pycaret
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
+from streamlit_webrtc import webrtc_streamer
 # #def chose_camera():
 #     st.markdown("""
 
