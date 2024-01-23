@@ -7,13 +7,6 @@ import platform
 import pycaret
 import cv2  
 
-st.markdown("""
-
-# Welcome to My First Streamlit App!
-
-This first application is try to implement different machine learning dataset and algorithms using [streamlit](https://streamlit.io/) and pycaret.
-""")
-
 def chose_camera():
     st.markdown("""
 
@@ -42,50 +35,62 @@ def camera(chose_camera):
 
     """)
 
-    cap = chose_camera
+def main():
+    st.markdown("""
 
-    while True:
-        ret, frame = cap.read()
-        cv2.imshow('frame', frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+    # Welcome to My First Streamlit App!
 
-    cap.release()
-    cv2.destroyAllWindows()
+    This first application is try to implement different machine learning dataset and algorithms using [streamlit](https://streamlit.io/) and pycaret.
+    """)
 
 
 
-with st.echo(code_location='below'):
-    total_points = st.slider("Number of points in spiral", 1, 5000, 2000)
-    num_turns = st.slider("Number of turns in spiral", 1, 100, 9)
+        cap = chose_camera
 
-    Point = namedtuple('Point', 'x y')
-    data = []
+        while True:
+            ret, frame = cap.read()
+            cv2.imshow('frame', frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
 
-    points_per_turn = total_points / num_turns
+        cap.release()
+        cv2.destroyAllWindows()
 
-    for curr_point_num in range(total_points):
-        curr_turn, i = divmod(curr_point_num, points_per_turn)
-        angle = (curr_turn + 1) * 2 * math.pi * i / points_per_turn
-        radius = curr_point_num / total_points
-        x = radius * math.cos(angle)
-        y = radius * math.sin(angle)
-        data.append(Point(x, y))
 
-    st.altair_chart(alt.Chart(pd.DataFrame(data), height=500, width=500)
-        .mark_circle(color='#0068c9', opacity=0.5)
-        .encode(x='x:Q', y='y:Q'))
 
-st.markdown('''
-# Here some stats about your pc
-''')
+    with st.echo(code_location='below'):
+        total_points = st.slider("Number of points in spiral", 1, 5000, 2000)
+        num_turns = st.slider("Number of turns in spiral", 1, 100, 9)
 
-df = pd.DataFrame({'machine':platform.machine(), 'version':platform.version(), 'platform':platform.platform(),
-'uname': platform.uname(), 'system':platform.system(), 'processor':platform.processor()})
+        Point = namedtuple('Point', 'x y')
+        data = []
 
-st.dataframe(df)
+        points_per_turn = total_points / num_turns
 
-#show camera and chose camera
+        for curr_point_num in range(total_points):
+            curr_turn, i = divmod(curr_point_num, points_per_turn)
+            angle = (curr_turn + 1) * 2 * math.pi * i / points_per_turn
+            radius = curr_point_num / total_points
+            x = radius * math.cos(angle)
+            y = radius * math.sin(angle)
+            data.append(Point(x, y))
 
-camera(chose_camera())
+        st.altair_chart(alt.Chart(pd.DataFrame(data), height=500, width=500)
+            .mark_circle(color='#0068c9', opacity=0.5)
+            .encode(x='x:Q', y='y:Q'))
 
+    st.markdown('''
+    # Here some stats about your pc
+    ''')
+
+    df = pd.DataFrame({'machine':platform.machine(), 'version':platform.version(), 'platform':platform.platform(),
+    'uname': platform.uname(), 'system':platform.system(), 'processor':platform.processor()})
+
+    st.dataframe(df)
+
+    #show camera and chose camera
+
+    camera(chose_camera())
+
+if __name__ == "__main__":
+    main()
