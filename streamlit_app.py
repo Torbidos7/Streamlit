@@ -4,7 +4,7 @@ import math
 import pandas as pd
 import streamlit as st
 import platform
-import pycaret
+#import pycaret
 import cv2  
 
 def chose_camera():
