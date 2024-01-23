@@ -1,5 +1,5 @@
 altair
 pandas
+opencv-python-headless==4.8.1.78
 streamlit
-streamlit_webrtc
-opencv-python-headless
+streamlit_webrtc==0.47.1
