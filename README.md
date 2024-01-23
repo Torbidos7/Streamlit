@@ -5,6 +5,11 @@ This repository is a trial space for exploring and understanding the functionali
 
 The main script, `streamlit_app.py`, demonstrates the use of `Streamlit` to create a simple data visualization interface. It includes a slider and `Streamlit` widgets to create a user interface to plot some spirals. Moreover it prints out some stats about the machine in which the program is running.
 
+## Online Demo
+
+You can find a demo of the web app hosted on Streamlit Cloud: 
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://system-in.streamlit.app/)
+
 ## Running the Code
 
 To run the code, navigate to the directory containing `streamlit_app.py` and execute the following command in your terminal:
