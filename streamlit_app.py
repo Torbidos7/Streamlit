@@ -5,46 +5,48 @@ import pandas as pd
 import streamlit as st
 import platform
 #import pycaret
-import cv2  
+from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
+# #def chose_camera():
+#     st.markdown("""
 
-def chose_camera():
-    st.markdown("""
+#     # Choose your camera
 
-    # Choose your camera
+#     """)
 
-    """)
+#     option = st.selectbox(
+#         'Which camera do you want to use?',
+#         ('Laptop camera', 'External camera'))
 
-    option = st.selectbox(
-        'Which camera do you want to use?',
-        ('Laptop camera', 'External camera'))
+#     st.write('You selected:', option)
 
-    st.write('You selected:', option)
+#     if option == 'Laptop camera':
+#         cap = cv2.VideoCapture(0)
+#     else:
+#         cap = cv2.VideoCapture(1)
 
-    if option == 'Laptop camera':
-        cap = cv2.VideoCapture(0)
-    else:
-        cap = cv2.VideoCapture(1)
+#     return cap
 
-    return cap
+# def camera(chose_camera):
 
-def camera(chose_camera):
+#     st.markdown("""
 
-    st.markdown("""
+#     # Camera
 
-    # Camera
+#     """)
 
-    """)
+#     cap = chose_camera
 
-    cap = chose_camera
+#     while True:
+#         ret, frame = cap.read()
+#         cv2.imshow('frame', frame)
+#         if cv2.waitKey(1) & 0xFF == ord('q'):
+#             break
 
-    while True:
-        ret, frame = cap.read()
-        cv2.imshow('frame', frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+#     cap.release()
+#     cv2.destroyAllWindows()
 
-    cap.release()
-    cv2.destroyAllWindows()
+def webcam():
+    webrtc_streamer(key="example", video_transformer_factory=None)
 
 def main():
     st.markdown("""
