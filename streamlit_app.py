@@ -4,17 +4,55 @@ import math
 import pandas as pd
 import streamlit as st
 import platform
+import pycaret
+import cv2  
 
-"""
-# Welcome to Streamlit!
+st.markdown("""
 
-Edit `/streamlit_app.py` to customize this app to your heart's desire :heart:
+# Welcome to My First Streamlit App!
 
-If you have any questions, checkout our [documentation](https://docs.streamlit.io) and [community
-forums](https://discuss.streamlit.io).
+This first application is try to implement different machine learning dataset and algorithms using [streamlit](https://streamlit.io/) and pycaret.
+""")
 
-In the meantime, below is an example of what you can do with just a few lines of code:
-"""
+def chose_camera():
+    st.markdown("""
+
+    # Choose your camera
+
+    """)
+
+    option = st.selectbox(
+        'Which camera do you want to use?',
+        ('Laptop camera', 'External camera'))
+
+    st.write('You selected:', option)
+
+    if option == 'Laptop camera':
+        cap = cv2.VideoCapture(0)
+    else:
+        cap = cv2.VideoCapture(1)
+
+    return cap
+
+def camera(chose_camera):
+
+    st.markdown("""
+
+    # Camera
+
+    """)
+
+    cap = chose_camera
+
+    while True:
+        ret, frame = cap.read()
+        cv2.imshow('frame', frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
 
 
 with st.echo(code_location='below'):
@@ -46,3 +84,8 @@ df = pd.DataFrame({'machine':platform.machine(), 'version':platform.version(), '
 'uname': platform.uname(), 'system':platform.system(), 'processor':platform.processor()})
 
 st.dataframe(df)
+
+#show camera and chose camera
+
+camera(chose_camera())
+
