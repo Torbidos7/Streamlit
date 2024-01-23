@@ -57,7 +57,9 @@ def main():
     """)
 
 
-
+    
+    #show input from camera
+    st.camera_input(label=":camera_with_flash:")
 
     with st.echo(code_location='below'):
         total_points = st.slider("Number of points in spiral", 1, 5000, 2000)
@@ -91,7 +93,7 @@ def main():
 
     #show camera and chose camera
 
-    camera(chose_camera())
+    webcam()
 
 if __name__ == "__main__":
     main()
