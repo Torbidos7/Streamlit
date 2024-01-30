@@ -22,9 +22,12 @@ from io import BytesIO
 threshold1 = 100
 threshold2 = 200
 
+RTC_CONFIGURATION = {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+MEDIA_STREAM_CONSTRAINTS = {"audio": False, "video": {"width": {"min": 800, "ideal": 1200, "max": 1920 }, "height": {"min": 600, "ideal": 900, "max": 1080 }}}
+
 WEBRTC_CLIENT_SETTINGS = ClientSettings(
-    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-    media_stream_constraints={"video": True, "audio": False, "video": {"width": {"min": 800, "ideal": 1200, "max": 1920 }, "height": {"min": 600, "ideal": 900, "max": 1080 }}}
+    rtc_configuration=RTC_CONFIGURATION,
+    media_stream_constraints=MEDIA_STREAM_CONSTRAINTS
 )
 
 
@@ -153,16 +156,18 @@ def sidebars():
     on = st.sidebar.toggle("Turn model on", value=False)   
     
 
+    #github link to the project
 
-    st.sidebar.markdown('''
-    # Here some stats about pc in which is running this app
-    ''')
+    st.sidebar.markdown("""
+                        # Github link to the project 	:card_index_dividers:
+                        
+                        
+                        
 
-    df = pd.DataFrame({'machine':platform.machine(), 'version':platform.version(), 'platform':platform.platform(),
-    'uname': platform.uname(), 'system':platform.system(), 'processor':platform.processor()})
+                        [Torbidos7/Streamlit](https://github.com/Torbidos7/Streamlit)
 
-    st.sidebar.dataframe(df)
-
+                       
+                        """)
     return  on
 
 def main():
@@ -194,6 +199,7 @@ def main():
     
                 # img = Image.open(result)    
                 buf = BytesIO()
+                result.resize((MEDIA_STREAM_CONSTRAINTS["video"]["width"]["max"], MEDIA_STREAM_CONSTRAINTS["video"]["height"]["max"]), Image.BICUBIC)
                 result.save(buf, format="JPEG")
                 byte_im = buf.getvalue()      
                 btn = st.download_button(
