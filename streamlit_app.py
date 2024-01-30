@@ -4,96 +4,75 @@ import math
 import pandas as pd
 import streamlit as st
 import platform
-#import pycaret
+import numpy as np
+import av 
 from streamlit_webrtc import webrtc_streamer
-# #def chose_camera():
-#     st.markdown("""
+import cv2
 
-#     # Choose your camera
+threshold1 = 100
+threshold2 = 200
 
-#     """)
-
-#     option = st.selectbox(
-#         'Which camera do you want to use?',
-#         ('Laptop camera', 'External camera'))
-
-#     st.write('You selected:', option)
-
-#     if option == 'Laptop camera':
-#         cap = cv2.VideoCapture(0)
-#     else:
-#         cap = cv2.VideoCapture(1)
-
-#     return cap
-
-# def camera(chose_camera):
-
-#     st.markdown("""
-
-#     # Camera
-
-#     """)
-
-#     cap = chose_camera
-
-#     while True:
-#         ret, frame = cap.read()
-#         cv2.imshow('frame', frame)
-#         if cv2.waitKey(1) & 0xFF == ord('q'):
-#             break
-
-#     cap.release()
-#     cv2.destroyAllWindows()
-
-def webcam():
+def normal_webcam():
     webrtc_streamer(key="example", video_transformer_factory=None)
 
-def main():
-    st.markdown("""
+def callback(frame):
+    img = frame.to_ndarray(format="bgr24")
 
-    # Welcome to My First Streamlit App!
+    img = cv2.cvtColor(cv2.Canny(img, threshold1, threshold2), cv2.COLOR_GRAY2BGR)
 
-    This first application is try to implement different machine learning dataset and algorithms using [streamlit](https://streamlit.io/) and pycaret.
+    return av.VideoFrame.from_ndarray(img, format="bgr24")
+def canny_webcam():
+    webrtc_streamer(key="example",  video_frame_callback=callback)
+
+
+def chose_webcam_param():
+    webrtc_streamer(key="example", fps=30, video_transformer_factory=None)
+
+def sidebars(): 
+
+    st.sidebar.markdown("""
+    # Welcome to this Streamlit App!
+
+    This app aim to use external usb camera from your pc and show it in this app.
     """)
-
-
+    threshold1 = st.sidebar.slider("Threshold1", min_value=0, max_value=1000, step=1, value=100)
+    threshold2 = st.sidebar.slider("Threshold2", min_value=0, max_value=1000, step=1, value=200)
+    on = st.sidebar.toggle("Turn model on", value=False)   
     
-    #show input from camera
-    st.camera_input(label=":camera_with_flash:")
 
-    with st.echo(code_location='below'):
-        total_points = st.slider("Number of points in spiral", 1, 5000, 2000)
-        num_turns = st.slider("Number of turns in spiral", 1, 100, 9)
 
-        Point = namedtuple('Point', 'x y')
-        data = []
-
-        points_per_turn = total_points / num_turns
-
-        for curr_point_num in range(total_points):
-            curr_turn, i = divmod(curr_point_num, points_per_turn)
-            angle = (curr_turn + 1) * 2 * math.pi * i / points_per_turn
-            radius = curr_point_num / total_points
-            x = radius * math.cos(angle)
-            y = radius * math.sin(angle)
-            data.append(Point(x, y))
-
-        st.altair_chart(alt.Chart(pd.DataFrame(data), height=500, width=500)
-            .mark_circle(color='#0068c9', opacity=0.5)
-            .encode(x='x:Q', y='y:Q'))
-
-    st.markdown('''
-    # Here some stats about your pc
+    st.sidebar.markdown('''
+    # Here some stats about pc in which is running this app
     ''')
 
     df = pd.DataFrame({'machine':platform.machine(), 'version':platform.version(), 'platform':platform.platform(),
     'uname': platform.uname(), 'system':platform.system(), 'processor':platform.processor()})
 
-    st.dataframe(df)
+    st.sidebar.dataframe(df)
 
-    #show camera and chose camera
+    return  on
 
-    webcam()
+def main():
+    st.markdown("""
+
+    # Welcome to this Streamlit App!
+
+    This app aim to use external usb camera from your pc and show it in this app.
+    """)
+    on = sidebars()
+   
+    if on:
+        st.write("switch is on")
+        canny_webcam()    
+    else:
+        normal_webcam()
+
+
+    save_file = st.checkbox("Save file")
+
+    if save_file:
+        st.write("File is saved")
+   
 
 if __name__ == "__main__":
     main()
