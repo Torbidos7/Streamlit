@@ -7,39 +7,36 @@ This Python script is a Streamlit application that uses an external USB camera f
 - [Streamlit](#streamlit)
   - [Table of Contents](#table-of-contents)
   - [About the Code](#about-the-code)
-    - [Video Trasformer Class](#video-trasformer-class)
+    - [OpenCVVideoProcessor Class](#opencvvideoprocessor-class)
     - [callback function](#callback-function)
-    - [main function](#main-function)
+    - [new\_version\_webcam function](#new_version_webcam-function)
   - [Online Demo](#online-demo)
   - [Running the Code](#running-the-code)
   - [Bugs and feature requests](#bugs-and-feature-requests)
   - [Authors](#authors)
   - [Thanks](#thanks)
   - [Copyright and license](#copyright-and-license)
-     
 ## About the Code
 
 The script imports necessary modules and packages. These include streamlit for the web app, cv2 for image processing, streamlit_webrtc for real-time communication (like video streaming), numpy and pandas for data handling, and others.
 
-### Video Trasformer Class
+### OpenCVVideoProcessor Class
 ```python
-class VideoTransformer(VideoTransformerBase):
-        frame_lock: threading.Lock  
-        out_image: Union[np.ndarray, None]
+class OpenCVVideoProcessor(VideoProcessorBase):
+    type: Literal["noop", "cartoon", "edges", "rotate"]
+    out_image: np.ndarray = None
 
-        def __init__(self) -> None:
-            self.frame_lock = threading.Lock()
-            self.out_image = None
+    def __init__(self) -> None:
+        self.type = "noop"
 
-        def transform(self, frame: av.VideoFrame) -> np.ndarray:
-            out_image = frame.to_ndarray(format="bgr24")
-
-            with self.frame_lock:
-                self.out_image = out_image
-            return out_image
+    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+        img = frame.to_ndarray(format="bgr24")
+        # Various transformations are applied based on the type
+        # The transformed image is stored in self.out_image
+        return av.VideoFrame.from_ndarray(img, format="bgr24")
 ```
 
-This class inherits from **VideoTransformerBase** and is used to transform video frames. It has a *transform* method that converts a frame to a numpy array. It also has a *frame_lock* attribute that is used to lock the frame and an out_image attribute that stores the converted frame.
+This class inherits from **VideoProcessorBase** and is used to transform video frames. It has a recv method that applies various transformations to a frame based on the *type* attribute and converts it to a numpy array.
 
 ### callback function
 ```python
@@ -51,38 +48,25 @@ def callback(frame):
 
 This function is used to apply the Canny edge detection algorithm to the video frames. It takes a frame as input and returns a frame with the edges detected.
 
-### main function
+### new_version_webcam function
 ```python
-def main():
-    st.markdown("""
-    # Welcome to this Streamlit App!
-    This app aim to use external usb camera from your pc and show it in this app.
-    """)
-    on = sidebars()
-   
-    if on:
-        st.write("switch is on")
-        ctx = canny_webcam()    
-    else:
-        ctx = normal_webcam()
-
-    if ctx.video_transformer:
-        snap = st.button("Snapshot")
-        if snap:
-            with ctx.video_transformer.frame_lock:
-                out_image = ctx.video_transformer.out_image
-
-            if out_image is not None:
-                st.write("Output image:")
-                st.image(out_image, channels="BGR")
-                my_path = os.path.abspath(os.path.dirname(__file__))       
-                cv2.imwrite(os.path.join(my_path, "../Data/"+"filename.jpg"), out_image)
-            else:
-                st.warning("No frames available yet.")
+def new_version_webcam():
+    webrtc_ctx = webrtc_streamer(
+        key="opencv-filter",
+        mode=WebRtcMode.SENDRECV,
+        client_settings=WEBRTC_CLIENT_SETTINGS,
+        video_processor_factory=OpenCVVideoProcessor,
+        async_processing=True,
+        media_stream_constraints={"video": {"width": {"min": 800, "ideal": 1200, "max": 1920 }, "height": {"min": 600, "ideal": 900, "max": 1080 }}}
+    )
+    if webrtc_ctx.video_processor:
+        webrtc_ctx.video_processor.type = st.radio(
+            "Select transform type", ("noop", "cartoon", "edges", "rotate")
+        )
+    return webrtc_ctx
 ```
+This function sets up a webcam stream with the option to apply various transformations to each frame. The type of transformation is selected using a radio button in the Streamlit app.
 
-This function sets up the main part of the Streamlit app. It displays a welcome message, calls the sidebars function to set up the *sidebar*, and sets up the video stream based on the state of the toggle in the sidebar. If the "*Snapshot*" button is clicked, it saves the current frame as an image.
-    
 ## Online Demo
 
 You can find a demo of the web app hosted on Streamlit Cloud: 
