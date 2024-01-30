@@ -1,6 +1,6 @@
 # Streamlit
 
-This Python script is a Streamlit application that uses an external USB camera from your PC and displays it in the app. It also provides an option to apply the Canny edge detection algorithm to the video frames.
+This Python script is a Streamlit application that uses an external USB camera from your PC and displays it in the app. It also provides an option to apply various transformations to the video frames.
 
 ## Table of Contents
 
