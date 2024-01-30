@@ -5,30 +5,143 @@ import pandas as pd
 import streamlit as st
 import platform
 import numpy as np
+import os
 import av 
-from streamlit_webrtc import webrtc_streamer
-import cv2
+from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, WebRtcMode, ClientSettings #to be installed
+import cv2 #to be installed headless
+import threading
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal  # type: ignore
+from PIL import Image
+import time
+from typing import Union #to be installed
+from io import BytesIO
 
 threshold1 = 100
 threshold2 = 200
 
+WEBRTC_CLIENT_SETTINGS = ClientSettings(
+    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+    media_stream_constraints={"video": True, "audio": False, "video": {"width": {"min": 800, "ideal": 1200, "max": 1920 }, "height": {"min": 600, "ideal": 900, "max": 1080 }}}
+)
+
+
+class OpenCVVideoProcessor(VideoProcessorBase):
+        type: Literal["noop", "cartoon", "edges", "rotate"]
+        out_image: np.ndarray = None
+        def __init__(self) -> None:
+            self.type = "noop"
+
+        def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+            img = frame.to_ndarray(format="bgr24")
+
+            if self.type == "noop":
+                pass
+                self.out_image = img.copy()
+            elif self.type == "cartoon":
+                # prepare color
+                img_color = cv2.pyrDown(cv2.pyrDown(img))
+                for _ in range(6):
+                    img_color = cv2.bilateralFilter(img_color, 9, 9, 7)
+                img_color = cv2.pyrUp(cv2.pyrUp(img_color))
+
+                # prepare edges
+                img_edges = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+                img_edges = cv2.adaptiveThreshold(
+                    cv2.medianBlur(img_edges, 7),
+                    255,
+                    cv2.ADAPTIVE_THRESH_MEAN_C,
+                    cv2.THRESH_BINARY,
+                    9,
+                    2,
+                )
+                img_edges = cv2.cvtColor(img_edges, cv2.COLOR_GRAY2RGB)
+
+                # combine color and edges
+                img = cv2.bitwise_and(img_color, img_edges)
+                self.out_image = img.copy()
+            elif self.type == "edges":
+                # perform edge detection
+                img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
+                self.out_image = img.copy()
+            elif self.type == "rotate":
+                # rotate image
+                rows, cols, _ = img.shape
+                M = cv2.getRotationMatrix2D((cols / 2, rows / 2), frame.time * 45, 1)
+                img = cv2.warpAffine(img, M, (cols, rows))
+                self.out_image = img.copy()
+
+            return av.VideoFrame.from_ndarray(img, format="bgr24")
+
+
 def normal_webcam():
-    webrtc_streamer(key="example", video_transformer_factory=None)
+    '''
+    This function is used to show the webcam in the app.
+    
+    Returns
+    -------
+    ctx: webrtc_streamer object'''
+    ctx = webrtc_streamer(key="example")
+    return ctx
 
 def callback(frame):
+    '''
+    This function is used to transform the video frame from the webcam.
+    
+    Parameters
+    ----------
+    frame: av.VideoFrame
+        Video frame from the webcam.
+    
+    Returns
+    -------
+    av.VideoFrame
+    '''
     img = frame.to_ndarray(format="bgr24")
 
     img = cv2.cvtColor(cv2.Canny(img, threshold1, threshold2), cv2.COLOR_GRAY2BGR)
 
     return av.VideoFrame.from_ndarray(img, format="bgr24")
-def canny_webcam():
-    webrtc_streamer(key="example",  video_frame_callback=callback)
 
+def model_webcam():
+    '''
+    This function is used to show the webcam in the app and apply the model.
+    
+    Returns
+    -------
+    ctx: webrtc_streamer object
+    '''
+    ctx= webrtc_streamer(key="example", video_frame_callback=callback)
+    return ctx
 
-def chose_webcam_param():
-    webrtc_streamer(key="example", fps=30, video_transformer_factory=None)
+def new_version_webcam():
+    
+    webrtc_ctx = webrtc_streamer(
+        key="opencv-filter",
+        mode=WebRtcMode.SENDRECV,
+        client_settings=WEBRTC_CLIENT_SETTINGS,
+        video_processor_factory=OpenCVVideoProcessor,
+        async_processing=True,
+        #media_stream_constraints={}}
+    )
+
+    if webrtc_ctx.video_processor:
+        webrtc_ctx.video_processor.type = st.radio(
+            "Select transform type", ("noop", "cartoon", "edges", "rotate")
+        )
+
+    return webrtc_ctx
 
 def sidebars(): 
+    '''
+    This function is used to show the sidebar in the app.
+    
+    Returns
+    -------
+    on: bool, model switch on or off'''
+
 
     st.sidebar.markdown("""
     # Welcome to this Streamlit App!
@@ -62,17 +175,36 @@ def main():
     on = sidebars()
    
     if on:
-        st.write("switch is on")
-        canny_webcam()    
-    else:
-        normal_webcam()
-
-
-    save_file = st.checkbox("Save file")
-
-    if save_file:
-        st.write("File is saved")
+        ctx = model_webcam()
    
+    ctx = new_version_webcam()
+
+    if ctx.video_transformer:
+
+        snap = st.button("Snapshot")
+        if snap:
+            out_image = ctx.video_transformer.out_image
+
+            if out_image is not None:
+                
+                st.write("Output image:")
+                st.image(out_image, channels="BGR")
+                out_image = cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB)
+                result = Image.fromarray(out_image.astype('uint8'), 'RGB')
+    
+                # img = Image.open(result)    
+                buf = BytesIO()
+                result.save(buf, format="JPEG")
+                byte_im = buf.getvalue()      
+                btn = st.download_button(
+                        label="Download image",
+                        data=byte_im,
+                        file_name = time.strftime("%Y-%m-%d-%H:%M:%S")+".png",
+                        mime="image/png")
+                
+            else:
+                st.warning("No frames available yet.")
+
 
 if __name__ == "__main__":
     main()
