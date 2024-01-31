@@ -18,6 +18,7 @@ from PIL import Image
 import time
 from typing import Union #to be installed
 from io import BytesIO
+from bulb_detection import detect_bulb
 
 threshold1 = 100
 threshold2 = 200
@@ -34,6 +35,7 @@ WEBRTC_CLIENT_SETTINGS = ClientSettings(
 class OpenCVVideoProcessor(VideoProcessorBase):
         type: Literal["noop", "cartoon", "edges", "rotate"]
         out_image: np.ndarray = None
+
         def __init__(self) -> None:
             self.type = "noop"
 
@@ -75,6 +77,8 @@ class OpenCVVideoProcessor(VideoProcessorBase):
                 M = cv2.getRotationMatrix2D((cols / 2, rows / 2), frame.time * 45, 1)
                 img = cv2.warpAffine(img, M, (cols, rows))
                 self.out_image = img.copy()
+            
+                
 
             return av.VideoFrame.from_ndarray(img, format="bgr24")
 
@@ -186,30 +190,52 @@ def main():
 
     if ctx.video_transformer:
 
-        snap = st.button("Snapshot")
+        snap = st.button("Snapshot and Bulb detection")
+       # immagine = np.zeros((1,1,1))
         if snap:
             out_image = ctx.video_transformer.out_image
-
+            #immagine = out_image.copy()
             if out_image is not None:
                 
                 st.write("Output image:")
                 st.image(out_image, channels="BGR")
                 out_image = cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB)
-                result = Image.fromarray(out_image.astype('uint8'), 'RGB')
-    
+                result_image = Image.fromarray(out_image.astype('uint8'), 'RGB')
+      
+                st.write("Bulb detection:")
+                bulb_points, img, total_hair, percentage_bulb = detect_bulb(out_image)
+                st.write("Total hair: ", total_hair)
+                st.write("Total bulb: ", len(bulb_points))
+                st.write(f"Percentage bulb: {percentage_bulb:.2f}%")
+                st.write("Output image:")
+                img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+                st.image(img, channels="BGR")
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                result_mask = Image.fromarray(img.astype('uint8'), 'RGB')
                 # img = Image.open(result)    
                 buf = BytesIO()
-                result.resize((MEDIA_STREAM_CONSTRAINTS["video"]["width"]["max"], MEDIA_STREAM_CONSTRAINTS["video"]["height"]["max"]), Image.BICUBIC)
-                result.save(buf, format="JPEG")
-                byte_im = buf.getvalue()      
-                btn = st.download_button(
+                result_image.resize((MEDIA_STREAM_CONSTRAINTS["video"]["width"]["max"], MEDIA_STREAM_CONSTRAINTS["video"]["height"]["max"]), Image.BICUBIC)
+                result_image.save(buf, format="JPEG")
+                result_mask.resize((MEDIA_STREAM_CONSTRAINTS["video"]["width"]["max"], MEDIA_STREAM_CONSTRAINTS["video"]["height"]["max"]), Image.BICUBIC)
+                result_mask.save(buf, format="JPEG")
+                byte_im = buf.getvalue()  
+                Col1, Col2 = st.columns([1,1])
+                with Col1:
+                    btn = st.download_button(
                         label="Download image",
                         data=byte_im,
-                        file_name = time.strftime("%Y-%m-%d-%H:%M:%S")+".png",
+                        file_name = "Image_"+time.strftime("%Y-%m-%d-%H:%M:%S")+".png",
                         mime="image/png")
+                with Col2:  
+                    btn = st.download_button(
+                        label="Download mask",
+                        data=byte_im,
+                        file_name = "Mask_"+time.strftime("%Y-%m-%d-%H:%M:%S")+".png",
+                        mime="image/png")    
                 
-            else:
-                st.warning("No frames available yet.")
+            
+        else:
+            st.warning("No frames available yet.")
 
 
 if __name__ == "__main__":
