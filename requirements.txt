@@ -5,3 +5,4 @@ twilio~=8.10.1
 matplotlib
 altair
 pandas
+segmentation-models==0.2.1
